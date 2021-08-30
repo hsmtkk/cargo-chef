@@ -1,0 +1,48 @@
+---
+kind: pipeline
+type: docker
+name: default
+
+trigger:
+  event:
+    - push
+
+steps:
+  - name: yamllint
+    image: sdesbure/yamllint:latest
+    commands:
+      - yamllint .drone.yml
+  - name: hadolint
+    depends_on:
+      - yamllint
+    image: hadolint/hadolint:2.6.0-alpine
+    commands:
+      - hadolint Dockerfile
+  - name: docker_latest
+    depends_on:
+      - yamllint
+    image: plugins/docker:19.03.8
+    environment:
+      DOCKER_BUILDKIT: 1
+    settings:
+      username: hsmtkk
+      password:
+        from_secret: dockerhub_token
+      repo: hsmtkk/cargo-chef
+      squash: true
+  - name: docker_tag
+    depends_on:
+      - yamllint
+    image: plugins/docker:19.03.8
+    environment:
+      DOCKER_BUILDKIT: 1
+    settings:
+      username: hsmtkk
+      password:
+        from_secret: dockerhub_token
+      repo: hsmtkk/cargo-chef
+      squash: true
+      auto_tag: true
+    when:
+      event:
+        - tag
